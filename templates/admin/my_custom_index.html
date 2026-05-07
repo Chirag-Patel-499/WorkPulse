@@ -1,0 +1,24 @@
+{# templates/admin/my_custom_index.html #}
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+{{ block.super }} {# Render the original admin index content #}
+
+{% if custom_report_link %}
+<div class="module">
+    <div class="changelist-form">
+        <div class="form-row">
+            <h2 class="module-title">Reports</h2>
+            <ul class="admin-reports">
+                <li>
+                    <a href="{{ custom_report_link.url }}">
+                        {{ custom_report_link.name }}
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

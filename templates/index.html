@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkPulse Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Custom styles if needed */
+        .hidden { display: none; }
+        .activity-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        .activity-indicator.active { background-color: green; }
+        .activity-indicator.idle { background-color: orange; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+    <div id="app" class="container mx-auto p-4">
+        <!-- Login Screen -->
+        <div id="login-screen" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mt-10">
+            <h2 class="text-2xl font-bold mb-6 text-center">WorkPulse Pro Login</h2>
+            <div class="mb-4">
+                <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username:</label>
+                <input type="text" id="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your username">
+            </div>
+            <button id="login-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">Login</button>
+            <p id="login-error" class="text-red-500 text-xs italic mt-4 hidden"></p>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="hidden">
+            <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold">WorkPulse Pro Dashboard</h1>
+                <div class="flex items-center">
+                    <span id="logged-in-user" class="mr-4 text-lg"></span>
+                    <button id="admin-report-button" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded text-sm mr-2 hidden">Admin Report</button>
+                    <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm">Logout</button>
+                </div>
+            </header>
+
+            <div id="dashboard-content" class="">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Session Control & Stats -->
+                    <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4">Current Session</h2>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="text-4xl font-mono" id="session-timer">00:00:00</div>
+                            <div>
+                                <span id="activity-status" class="text-lg font-semibold">Active</span>
+                                <span id="activity-indicator" class="activity-indicator active"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="task-select" class="block text-gray-700 text-sm font-bold mb-2">Select Task:</label>
+                            <select id="task-select" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                <option value="">No Task Selected</option>
+                            </select>
+                            <div class="flex mt-2">
+                                <input type="text" id="new-task-input" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mr-2" placeholder="Add new task">
+                                <button id="add-task-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Add Task</button>
+                            </div>
+                        </div>
+
+                        <div class="flex space-x-4 mb-6">
+                            <button id="start-session-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex-1">Start Session</button>
+                            <button id="stop-session-button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex-1 hidden">Stop Session</button>
+                        </div>
+
+                        <div id="session-stats" class="grid grid-cols-2 gap-4 text-lg">
+                            <div><strong>Total Time:</strong> <span id="total-time">0s</span></div>
+                            <div><strong>Active Time:</strong> <span id="active-time">0s</span></div>
+                        </div>
+
+                        <div id="end-session-notes-container" class="mt-6 hidden">
+                            <label for="end-session-notes" class="block text-gray-700 text-sm font-bold mb-2">Session Notes:</label>
+                            <textarea id="end-session-notes" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" rows="3" placeholder="Add notes for this session..."></textarea>
+                            <button id="confirm-stop-session-button" class="bg-red-600 hover:bg-red-800 text-white font-bold py-2 px-4 rounded mt-2 w-full">Confirm Stop Session</button>
+                        </div>
+                    </div>
+
+                    <!-- Screenshot Preview -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4">Last Screenshot</h2>
+                        <div id="screenshot-container" class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-lg overflow-hidden">
+                            <img id="last-screenshot-img" src="" alt="Last Screenshot" class="max-w-full max-h-full object-contain hidden">
+                            <span id="no-screenshot-message" class="text-gray-500">No screenshot yet</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task List -->
+                <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                    <h2 class="text-xl font-bold mb-4">My Tasks</h2>
+                    <ul id="task-list" class="divide-y divide-gray-200">
+                        <!-- Tasks will be loaded here -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Admin Report Screen -->
+            <div id="admin-report-screen" class="hidden mt-6">
+                <button id="back-to-dashboard-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4">← Back to Dashboard</button>
+                <h2 class="text-2xl font-bold mb-4">Admin Report</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Active Time</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Idle Time</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sessions</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Session End</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Tasks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-report-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Admin report data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api';
+        let currentUser = null;
+        let currentSession = null;
+        let sessionTimerInterval = null;
+        let activityTrackerInterval = null;
+        let screenshotInterval = null;
+        let lastActivityTime = Date.now();
+        let isActive = true;
+        let mediaStream = null;
+        let screenshotCanvas = document.createElement('canvas');
+        let screenshotContext = screenshotCanvas.getContext('2d');
+
+        // DOM Elements
+        const loginScreen = document.getElementById('login-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const dashboardContent = document.getElementById('dashboard-content'); // New
+        const adminReportScreen = document.getElementById('admin-report-screen'); // New
+        const usernameInput = document.getElementById('username');
+        const loginButton = document.getElementById('login-button');
+        const loginError = document.getElementById('login-error');
+        const loggedInUserSpan = document.getElementById('logged-in-user');
+        const logoutButton = document.getElementById('logout-button');
+        const adminReportButton = document.getElementById('admin-report-button'); // New
+        const backToDashboardButton = document.getElementById('back-to-dashboard-button'); // New
+        const sessionTimerDisplay = document.getElementById('session-timer');
+        const activityStatusSpan = document.getElementById('activity-status');
+        const activityIndicator = document.getElementById('activity-indicator');
+        const taskSelect = document.getElementById('task-select');
+        const newTaskInput = document.getElementById('new-task-input');
+        const addTaskButton = document.getElementById('add-task-button');
+        const startSessionButton = document.getElementById('start-session-button');
+        const stopSessionButton = document.getElementById('stop-session-button');
+        const totalTimeSpan = document.getElementById('total-time');
+        const activeTimeSpan = document.getElementById('active-time');
+        const idleTimeSpan = null;
+        const activityPercentageSpan = null;
+        const lastScreenshotImg = document.getElementById('last-screenshot-img');
+        const noScreenshotMessage = document.getElementById('no-screenshot-message');
+        const taskList = document.getElementById('task-list');
+        const endSessionNotesContainer = document.getElementById('end-session-notes-container');
+        const endSessionNotes = document.getElementById('end-session-notes');
+        const confirmStopSessionButton = document.getElementById('confirm-stop-session-button');
+        const adminReportTableBody = document.getElementById('admin-report-table-body'); // New
+
+        // Utility Functions
+        function formatDuration(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return [h, m, s].map(v => v < 10 ? '0' + v : v).join(':');
+        }
+
+        // New utility function to parse Django's DurationField string format
+        function parseDjangoDurationToSeconds(durationString) {
+            if (!durationString) return 0;
+
+            // Example formats: "0:00:00", "1 day, 0:00:00", "1 day, 1:02:03.456000"
+            let totalSeconds = 0;
+            const parts = durationString.split(', ');
+
+            if (parts.length > 1) { // Contains days
+                const daysPart = parts[0];
+                const daysMatch = daysPart.match(/(\d+)\s+day/);
+                if (daysMatch) {
+                    totalSeconds += parseInt(daysMatch[1]) * 24 * 3600;
+                }
+                durationString = parts[1]; // Remaining is time part
+            }
+
+            const timeParts = durationString.split(':');
+            if (timeParts.length === 3) { // HH:MM:SS.microseconds or HH:MM:SS
+                totalSeconds += parseInt(timeParts[0]) * 3600;
+                totalSeconds += parseInt(timeParts[1]) * 60;
+                totalSeconds += parseFloat(timeParts[2]);
+            } else if (timeParts.length === 2) { // MM:SS (less common for DurationField but handle)
+                totalSeconds += parseInt(timeParts[0]) * 60;
+                totalSeconds += parseFloat(timeParts[1]);
+            } else if (timeParts.length === 1) { // SS (less common)
+                totalSeconds += parseFloat(timeParts[0]);
+            }
+            return totalSeconds;
+        }
+
+        function updateSessionStatsDisplay() {
+            if (currentSession) {
+                const totalSeconds = (new Date(currentSession.end_time || Date.now()).getTime() - new Date(currentSession.start_time).getTime()) / 1000;
+                const activeSeconds = parseDjangoDurationToSeconds(currentSession.active_time);
+                const idleSeconds = parseDjangoDurationToSeconds(currentSession.idle_time);
+                
+                totalTimeSpan.textContent = formatDuration(totalSeconds);
+                activeTimeSpan.textContent = formatDuration(activeSeconds);
+            } else {
+                totalTimeSpan.textContent = '0s';
+                activeTimeSpan.textContent = '0s';
+            }
+        }
+
+        function updateSessionTimer() {
+            if (currentSession && currentSession.start_time) {
+                const now = Date.now();
+                const startTime = new Date(currentSession.start_time).getTime();
+                const elapsedSeconds = Math.floor((now - startTime) / 1000);
+                sessionTimerDisplay.textContent = formatDuration(elapsedSeconds);
+            } else {
+                sessionTimerDisplay.textContent = '00:00:00';
+            }
+        }
+
+        function showDashboard() {
+            loginScreen.classList.add('hidden');
+            dashboardScreen.classList.remove('hidden');
+            dashboardContent.classList.remove('hidden'); // Show dashboard content
+            adminReportScreen.classList.add('hidden'); // Hide admin report screen
+            loggedInUserSpan.textContent = `Logged in as: ${currentUser.username}`;
+            if (currentUser.is_staff) {
+                adminReportButton.classList.remove('hidden');
+            } else {
+                adminReportButton.classList.add('hidden');
+            }
+            fetchDashboardData();
+            startActivityTracking();
+        }
+
+        function showAdminReport() {
+            if (!currentUser || !currentUser.is_staff) {
+                alert('You do not have permission to view the admin report.');
+                return;
+            }
+            dashboardContent.classList.add('hidden'); // Hide dashboard content
+            adminReportScreen.classList.remove('hidden'); // Show admin report screen
+            fetchAdminReportData();
+        }
+
+        function showLogin() {
+            loginScreen.classList.remove('hidden');
+            dashboardScreen.classList.add('hidden');
+            dashboardContent.classList.add('hidden'); // Hide dashboard content
+            adminReportScreen.classList.add('hidden'); // Hide admin report screen
+            currentUser = null;
+            currentSession = null;
+            clearInterval(sessionTimerInterval);
+            clearInterval(activityTrackerInterval);
+            clearInterval(screenshotInterval);
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            sessionTimerDisplay.textContent = '00:00:00';
+            activityStatusSpan.textContent = 'Inactive';
+            activityIndicator.className = 'activity-indicator';
+            startSessionButton.classList.remove('hidden');
+            stopSessionButton.classList.add('hidden');
+            endSessionNotesContainer.classList.add('hidden');
+            lastScreenshotImg.classList.add('hidden');
+            noScreenshotMessage.classList.remove('hidden');
+            taskSelect.innerHTML = '<option value="">No Task Selected</option>';
+            taskList.innerHTML = '';
+            updateSessionStatsDisplay();
+        }
+
+        // API Calls
+        async function apiFetch(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            };
+            if (data) {
+                if (data instanceof FormData) {
+                    options.body = data;
+                } else {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(data);
+                }
+            }
+            const response = await fetch(`${API_BASE_URL}${url}`, options);
+            if (!response.ok) {
+                let errorMessage = `Server Error: ${response.status} ${response.statusText}`;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+            return response.json();
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function fetchDashboardData() {
+            if (!currentUser) return;
+            try {
+                const data = await apiFetch(`/dashboard?user_id=${currentUser.id}`);
+                currentUser = data.user; // Update user data if needed
+                currentSession = data.current_session;
+                
+                // Populate tasks
+                taskSelect.innerHTML = '<option value="">No Task Selected</option>';
+                data.tasks.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.id;
+                    option.textContent = task.title;
+                    taskSelect.appendChild(option);
+                });
+                renderTaskList(data.tasks);
+
+                if (currentSession) {
+                    taskSelect.value = currentSession.task ? currentSession.task.id : '';
+                    startSessionButton.classList.add('hidden');
+                    stopSessionButton.classList.remove('hidden');
+                    sessionTimerInterval = setInterval(updateSessionTimer, 1000);
+                    updateSessionTimer();
+                    updateSessionStatsDisplay();
+                    if (data.last_screenshot && data.last_screenshot.image) {
+                        lastScreenshotImg.src = data.last_screenshot.image;
+                        lastScreenshotImg.classList.remove('hidden');
+                        noScreenshotMessage.classList.add('hidden');
+                    } else {
+                        lastScreenshotImg.classList.add('hidden');
+                        noScreenshotMessage.classList.remove('hidden');
+                    }
+                    // Start screenshot capture if not already running
+                    if (!mediaStream) {
+                        startScreenCapture();
+                    }
+                } else {
+                    startSessionButton.classList.remove('hidden');
+                    stopSessionButton.classList.add('hidden');
+                    clearInterval(sessionTimerInterval);
+                    sessionTimerDisplay.textContent = '00:00:00';
+                    lastScreenshotImg.classList.add('hidden');
+                    noScreenshotMessage.classList.remove('hidden');
+                    updateSessionStatsDisplay();
+                }
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+                alert('Error fetching dashboard data: ' + error.message);
+            }
+        }
+
+        async function fetchAdminReportData() {
+            try {
+                const data = await apiFetch('/admin-report');
+                renderAdminReportTable(data);
+            } catch (error) {
+                console.error('Error fetching admin report data:', error);
+                alert('Error fetching admin report: ' + error.message);
+            }
+        }
+
+        function renderAdminReportTable(usersData) {
+            adminReportTableBody.innerHTML = '';
+            usersData.forEach(user => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.username}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDuration(parseDjangoDurationToSeconds(user.total_active_time))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDuration(parseDjangoDurationToSeconds(user.total_idle_time))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.total_sessions}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.last_session_end ? new Date(user.last_session_end).toLocaleString() : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.total_tasks}</td>
+                `;
+                adminReportTableBody.appendChild(row);
+            });
+        }
+
+        async function login() {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                loginError.textContent = 'Username cannot be empty.';
+                loginError.classList.remove('hidden');
+                return;
+            }
+            loginError.classList.add('hidden');
+            try {
+                const data = await apiFetch('/login', 'POST', { username });
+                currentUser = data;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showDashboard();
+            } catch (error) {
+                console.error('Login error:', error);
+                loginError.textContent = 'Login failed: ' + error.message;
+                loginError.classList.remove('hidden');
+            }
+        }
+
+        async function startSession() {
+            if (!currentUser) return;
+            const selectedTaskId = taskSelect.value;
+            try {
+                const data = await apiFetch('/start-session', 'POST', { 
+                    user_id: currentUser.id, 
+                    task_id: selectedTaskId || null 
+                });
+                currentSession = data;
+                startSessionButton.classList.add('hidden');
+                stopSessionButton.classList.remove('hidden');
+                sessionTimerInterval = setInterval(updateSessionTimer, 1000);
+                updateSessionTimer();
+                updateSessionStatsDisplay();
+                await startScreenCapture();
+
+                // Capture initial screenshot
+                captureAndUploadScreenshot(); 
+            } catch (error) {
+                console.error('Error starting session:', error);
+                alert('Error starting session: ' + error.message);
+            }
+        }
+
+        async function stopSession() {
+            if (!currentSession) return;
+            endSessionNotesContainer.classList.remove('hidden');
+            stopSessionButton.classList.add('hidden'); // Hide original stop button
+        }
+
+async function confirmStopSession() {
+
+    if (!currentSession) return;
+
+    const notes = endSessionNotes.value.trim();
+
+    try {
+
+        await apiFetch('/stop-session', 'POST', {
+            session_id: currentSession.id,
+            notes
+        });
+
+        // STOP ALL INTERVALS
+        clearInterval(sessionTimerInterval);
+
+        clearInterval(activityTrackerInterval);
+
+        clearTimeout(screenshotInterval);
+
+        // STOP SCREEN SHARING
+        if (mediaStream) {
+
+            mediaStream.getTracks().forEach(track => track.stop());
+
+            mediaStream = null;
+        }
+
+        currentSession = null;
+
+        fetchDashboardData();
+
+        endSessionNotesContainer.classList.add('hidden');
+
+        endSessionNotes.value = '';
+
+        startSessionButton.classList.remove('hidden');
+
+        stopSessionButton.classList.add('hidden');
+
+        console.log('Session stopped successfully.');
+
+    } catch (error) {
+
+        console.error('Error stopping session:', error);
+
+        alert('Error stopping session: ' + error.message);
+    }
+}
+
+        async function addOrUpdateTask(title, taskId = null, completed = false) {
+            if (!currentUser) return;
+            try {
+                let data;
+                if (taskId) {
+                    data = await apiFetch(`/tasks/${taskId}`, 'PUT', { completed });
+                } else {
+                    data = await apiFetch('/tasks', 'POST', { user_id: currentUser.id, title });
+                }
+                newTaskInput.value = '';
+                fetchDashboardData(); // Refresh tasks
+            } catch (error) {
+                console.error('Error adding/updating task:', error);
+                alert('Error adding/updating task: ' + error.message);
+            }
+        }
+
+        async function deleteTask(taskId) {
+            if (!confirm('Are you sure you want to delete this task?')) return;
+            try {
+                await apiFetch(`/tasks/${taskId}`, 'DELETE');
+                fetchDashboardData(); // Refresh tasks
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                alert('Error deleting task: ' + error.message);
+            }
+        }
+
+        function renderTaskList(tasks) {
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'py-3 flex items-center justify-between';
+                li.innerHTML = `
+                    <div class="flex items-center">
+                        <input type="checkbox" data-task-id="${task.id}" ${task.completed ? 'checked' : ''} class="form-checkbox h-5 w-5 text-blue-600">
+                        <span class="ml-3 text-lg ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}">${task.title}</span>
+                    </div>
+                    <button data-task-id="${task.id}" class="delete-task-button bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm">Delete</button>
+                `;
+                taskList.appendChild(li);
+            });
+
+            // Add event listeners for checkboxes and delete buttons
+            taskList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const taskId = e.target.dataset.taskId;
+                    addOrUpdateTask(null, taskId, e.target.checked);
+                });
+            });
+            taskList.querySelectorAll('.delete-task-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const taskId = e.target.dataset.taskId;
+                    deleteTask(taskId);
+                });
+            });
+        }
+
+        // Activity Tracking
+function startActivityTracking() {
+
+    // Clear old interval first
+    if (activityTrackerInterval) {
+        clearInterval(activityTrackerInterval);
+    }
+
+    // Remove old listener first
+    document.removeEventListener('mousemove', recordActivity);
+
+    // Add fresh listener
+    document.addEventListener('mousemove', recordActivity);
+
+    // Start fresh interval
+    activityTrackerInterval = setInterval(async () => {
+
+        if (currentSession) {
+            await sendActivityPing();
+        }
+
+    }, 30000);
+
+    console.log('Activity tracking started.');
+}
+
+        function recordActivity() {
+            lastActivityTime = Date.now();
+            if (!isActive) {
+                isActive = true;
+                activityStatusSpan.textContent = 'Active';
+                activityIndicator.classList.remove('idle');
+                activityIndicator.classList.add('active');
+            }
+        }
+
+        async function sendActivityPing() {
+            if (!currentSession) return;
+
+            const now = Date.now();
+            const idleThreshold = 2 * 60 * 1000; // 2 minutes in milliseconds
+
+            if (now - lastActivityTime > idleThreshold) {
+                isActive = false;
+                activityStatusSpan.textContent = 'Idle';
+                activityIndicator.classList.remove('active');
+                activityIndicator.classList.add('idle');
+            } else {
+                isActive = true;
+                activityStatusSpan.textContent = 'Active';
+                activityIndicator.classList.remove('idle');
+                activityIndicator.classList.add('active');
+            }
+
+            try {
+                const duration = 30; // Assuming ping every 10 seconds
+                const data = await apiFetch('/activity-ping', 'POST', {
+                    session_id: currentSession.id,
+                    is_active: isActive,
+                    duration: duration
+                });
+                currentSession = data; // Update session with latest active/idle times
+                updateSessionStatsDisplay();
+            } catch (error) {
+                console.error('Error sending activity ping:', error);
+            }
+        }
+
+        // Screenshot System
+async function startScreenCapture() {
+
+    console.log('startScreenCapture called.');
+
+    if (mediaStream) {
+        console.log('Media stream already active.');
+        return;
+    }
+
+    try {
+
+mediaStream = await navigator.mediaDevices.getDisplayMedia({
+    video: {
+        displaySurface: "monitor"
+    },
+    audio: false,
+    preferCurrentTab: false,
+    selfBrowserSurface: "exclude",
+    surfaceSwitching: "exclude"
+});
+
+        console.log('Screen sharing started successfully.');
+
+        const videoTrack = mediaStream.getVideoTracks()[0];
+
+        videoTrack.onended = () => {
+            console.log('Screen sharing stopped.');
+            mediaStream = null;
+        };
+
+        scheduleScreenshot();
+
+    } catch (err) {
+
+        console.error('SCREEN CAPTURE ERROR:', err);
+
+        alert(
+            'Screen sharing failed:\n\n' + err.message
+        );
+    }
+}
+
+function scheduleScreenshot() {
+
+    console.log('Scheduling next screenshot...');
+
+    if (screenshotInterval) clearTimeout(screenshotInterval);
+
+    const minMinutes = 15;
+    const maxMinutes = 20;
+
+    const randomInterval =
+        (Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes)
+        * 60 * 1000;
+
+    console.log(
+        `Next screenshot scheduled in ${randomInterval / 1000 / 60} minutes.`
+    );
+
+    screenshotInterval = setTimeout(
+        captureAndUploadScreenshot,
+        randomInterval
+    );
+}
+
+        async function captureAndUploadScreenshot() {
+            console.log('captureAndUploadScreenshot called.');
+            if (!mediaStream) {
+                console.warn('Cannot capture screenshot: mediaStream is null. Attempting to restart screen capture.');
+                await startScreenCapture(); // Try to restart screen capture
+                if (!mediaStream) {
+                    console.error('Failed to obtain mediaStream after retry. Cannot capture screenshot.');
+                    scheduleScreenshot(); // Reschedule even if failed
+                    return;
+                }
+            }
+            if (!currentSession) {
+                console.warn('Cannot capture screenshot: No active session.');
+                scheduleScreenshot(); // Reschedule even if failed
+                return;
+            }
+
+            const videoTrack = mediaStream.getVideoTracks()[0];
+            if (!videoTrack) {
+                console.error('No video track found in media stream. MediaStream tracks:', mediaStream.getTracks());
+                scheduleScreenshot();
+                return;
+            }
+            console.log('Video track found:', videoTrack);
+
+            const imageCapture = new ImageCapture(videoTrack);
+            try {
+                console.log('Attempting to grab frame...');
+                const bitmap = await imageCapture.grabFrame();
+                console.log('Frame grabbed successfully. Bitmap dimensions:', bitmap.width, 'x', bitmap.height);
+                screenshotCanvas.width = bitmap.width;
+                screenshotCanvas.height = bitmap.height;
+                screenshotContext.drawImage(bitmap, 0, 0);
+                console.log('Bitmap drawn to canvas.');
+
+                screenshotCanvas.toBlob(async (blob) => {
+                    if (blob) {
+                        console.log('Canvas converted to blob. Blob size:', blob.size, 'bytes. Type:', blob.type);
+                        const formData = new FormData();
+                        formData.append('session_id', currentSession.id);
+                        formData.append('image', blob, `screenshot-${Date.now()}.jpeg`); // Changed to jpeg extension
+                        console.log('FormData created with session_id and image.');
+                        try {
+                            const response = await apiFetch('/upload-screenshot', 'POST', formData);
+                            console.log('Screenshot uploaded successfully:', response);
+                            lastScreenshotImg.src = response.image;
+                            lastScreenshotImg.classList.remove('hidden');
+                            noScreenshotMessage.classList.add('hidden');
+                        } catch (error) {
+                            console.error('Error uploading screenshot via API:', error);
+                        }
+                    } else {
+                        console.error('Failed to create blob from canvas.');
+                    }
+                    scheduleScreenshot(); // Schedule next screenshot
+                }, 'image/jpeg', 0.8); // Use JPEG for smaller size
+            } catch (error) {
+                console.error('Error capturing frame or processing image:', error);
+                scheduleScreenshot(); // Schedule next screenshot
+            }
+        }
+
+        // Event Listeners
+        loginButton.addEventListener('click', login);
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        logoutButton.addEventListener('click', showLogin);
+        adminReportButton.addEventListener('click', showAdminReport); // New
+        backToDashboardButton.addEventListener('click', showDashboard); // New
+        startSessionButton.addEventListener('click', startSession);
+        stopSessionButton.addEventListener('click', stopSession);
+        confirmStopSessionButton.addEventListener('click', confirmStopSession);
+        addTaskButton.addEventListener('click', () => addOrUpdateTask(newTaskInput.value.trim()));
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                currentUser = JSON.parse(storedUser);
+                showDashboard();
+            } else {
+                showLogin();
+            }
+        });
+    </script>
+</body>
+</html>

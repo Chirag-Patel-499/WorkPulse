@@ -1,0 +1,39 @@
+{# templates/admin/daywise_report.html #}
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+
+    {% for user_data in users_data %}
+        <div class="module">
+            <h2>User: {{ user_data.username }} {% if user_data.is_staff %}(Admin){% endif %}</h2>
+            <p>Total Tasks: {{ user_data.total_tasks }}</p>
+
+            {% if user_data.daily_summaries %}
+                <h3>Daily Summaries:</h3>
+                <table class="compact">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Total Active Time</th>
+                            <th>Total Idle Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day_summary in user_data.daily_summaries %}
+                            <tr>
+                                <td>{{ day_summary.date }}</td>
+                                <td>{{ day_summary.total_active_time }}</td>
+                                <td>{{ day_summary.total_idle_time }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No session data available for this user.</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
