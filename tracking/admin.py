@@ -33,53 +33,81 @@ class TaskAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'title')
 
 # Custom Admin Site for reports
+# Custom Admin Site for reports
 class MyAdminSite(admin.AdminSite):
     site_header = "WorkPulse Pro Admin"
     site_title = "WorkPulse Pro Admin Portal"
     index_title = "Welcome to WorkPulse Pro Admin"
-    index_template = "admin/my_custom_index.html"
 
     def get_urls(self):
         urls = super().get_urls()
+
         custom_urls = [
-            path('daywise-report/', self.admin_view(self.daywise_report_view), name='daywise_report'),
+            path(
+                'daywise-report/',
+                self.admin_view(self.daywise_report_view),
+                name='daywise_report'
+            ),
         ]
+
         return custom_urls + urls
 
     def index(self, request, extra_context=None):
+
         if extra_context is None:
             extra_context = {}
+
         extra_context['custom_report_link'] = {
             'name': 'Day-wise Activity Report',
             'url': reverse('myadmin:daywise_report'),
         }
+
         return super().index(request, extra_context)
 
     def daywise_report_view(self, request):
+
         users_data = []
+
         for user in User.objects.all():
-            all_sessions = Session.objects.filter(user=user).order_by('-start_time')
+
+            all_sessions = Session.objects.filter(
+                user=user
+            ).order_by('-start_time')
 
             daily_summaries = {}
+
             for session in all_sessions:
+
                 session_date = session.start_time.date()
+
                 if session_date not in daily_summaries:
+
                     daily_summaries[session_date] = {
                         'date': session_date.isoformat(),
                         'total_active_time': timedelta(0),
                         'total_idle_time': timedelta(0),
                         'sessions': []
                     }
-                
-                daily_summaries[session_date]['total_active_time'] += session.active_time
-                daily_summaries[session_date]['total_idle_time'] += session.idle_time
-                # For display in admin, we might not need all session details, just summary
-            
-            for date_summary in daily_summaries.values():
-                date_summary['total_active_time'] = str(date_summary['total_active_time'])
-                date_summary['total_idle_time'] = str(date_summary['total_idle_time'])
 
-            sorted_daily_summaries = sorted(daily_summaries.values(), key=lambda x: x['date'], reverse=True)
+                daily_summaries[session_date]['total_active_time'] += session.active_time
+
+                daily_summaries[session_date]['total_idle_time'] += session.idle_time
+
+            for date_summary in daily_summaries.values():
+
+                date_summary['total_active_time'] = str(
+                    date_summary['total_active_time']
+                )
+
+                date_summary['total_idle_time'] = str(
+                    date_summary['total_idle_time']
+                )
+
+            sorted_daily_summaries = sorted(
+                daily_summaries.values(),
+                key=lambda x: x['date'],
+                reverse=True
+            )
 
             users_data.append({
                 'id': user.id,
@@ -94,13 +122,20 @@ class MyAdminSite(admin.AdminSite):
             title="Day-wise Activity Report",
             users_data=users_data,
         )
-        return render(request, 'admin/daywise_report.html', context)
+
+        return render(
+            request,
+            'admin/daywise_report.html',
+            context
+        )
+
 
 # Instantiate the custom admin site
 admin_site = MyAdminSite(name='myadmin')
+
 
 # Register models with the custom admin site
 admin_site.register(Task, TaskAdmin)
 admin_site.register(Session, SessionAdmin)
 admin_site.register(Screenshot, ScreenshotAdmin)
-admin_site.register(User) # Register the custom User model as well
+admin_site.register(User)
