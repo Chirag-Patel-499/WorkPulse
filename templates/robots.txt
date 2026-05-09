@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://work.biz499.com/sitemap.xml

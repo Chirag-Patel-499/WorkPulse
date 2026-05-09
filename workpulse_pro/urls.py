@@ -17,6 +17,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import TemplateView
+
 from tracking import views # Import the views from the tracking app
 from tracking.admin import admin_site # Import the custom admin_site
 
@@ -24,6 +26,22 @@ urlpatterns = [
     path('admin/', admin_site.urls), # Use the custom admin_site
     path('api/', include('tracking.urls')),
     path('', views.index, name='index'), # Serve the frontend at the root URL
+
+    path(
+        "robots.txt",
+        TemplateView.as_view(
+            template_name="robots.txt",
+            content_type="text/plain"
+        ),
+    ),
+
+    path(
+        "sitemap.xml",
+        TemplateView.as_view(
+            template_name="sitemap.xml",
+            content_type="application/xml"
+        ),
+    ),
 ]
 
 if settings.DEBUG:
