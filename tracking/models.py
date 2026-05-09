@@ -31,22 +31,4 @@ class Screenshot(models.Model):
         return f"Screenshot for Session {self.session.id} at {self.created_at.strftime('%Y-%m-%d %H:%M')}"
     
 
-class Company(models.Model):
-    name = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name    
     
-
-class Team(models.Model):
-    company = models.ForeignKey(
-        Company,
-        on_delete=models.CASCADE,
-        related_name='teams'
-    )
-
-    name = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.name
